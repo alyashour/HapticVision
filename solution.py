@@ -2,24 +2,28 @@ import cv2
 import mediapipe as mp
 
 
-def start_live_stream():
+def start(video_path: str = None):
     mp_drawing = mp.solutions.drawing_utils
     mp_drawing_styles = mp.solutions.drawing_styles
     mp_hands = mp.solutions.hands
 
-    capture = cv2.VideoCapture(0)
+    capture = cv2.VideoCapture(video_path if video_path else 0)
     hands = mp_hands.Hands(
-        model_complexity=0,
-        min_detection_confidence=0.5,
-        min_tracking_confidence=0.5,
+        model_complexity=1,
+        min_detection_confidence=0.6,
+        min_tracking_confidence=0.6,
         static_image_mode=False
     )
 
     while capture.isOpened():
         success, frame_bgr = capture.read()
-        frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
         if not success:
-            continue
+            if video_path:
+                break
+            else:
+                continue
+
+        frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
 
         # process image
         results = hands.process(frame_rgb)
@@ -40,8 +44,8 @@ def start_live_stream():
     print('Releasing Capture')
     capture.release()
     cv2.destroyAllWindows()
-    cv2.waitKey()
+    cv2.waitKey(1)
 
 
 if __name__ == '__main__':
-    start_live_stream()
+    start()
