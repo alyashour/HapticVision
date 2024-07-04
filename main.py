@@ -1,5 +1,4 @@
-from solution import start
-from model import detect_video
+from old_api import start
 import cv2
 
 option = 'video'
