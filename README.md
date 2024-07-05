@@ -4,7 +4,7 @@
 This project leverages computer vision techniques using Mediapipe and OpenCV to analyze videos of hands manipulating objects. The system detects and classifies various gestures such as tapping, holding, rotating, feeling, and probing. This research is being conducted at the University of Western Ontario and aims to advance the understanding of haptic abilities in medical sciences.
 
 ## Motivation
-Haptic awareness is crucial in medical sciences, particularly in training and assessment of manual skills. By accurately detecting and analyzing hand gestures, we can gain deeper insights into what shows high haptic abilities, which is essential for improving medical training, understanding the haptic-spatial correlation, and enhancing human-computer interaction.
+Haptic abilities are crucial in medical sciences, particularly in training and assessment of manual skills. By accurately detecting and analyzing hand gestures, we can gain deeper insights into haptic abilities and learn to answer questions like what are signs of high/low haptic abiltiies. This software will aid in that research by quickly parsing footage of the HAT (haptic abilities test) allowing researchers to gain more insights from the same trials.
 
 ## Features
 - **Gesture Detection**: Identify and classify various hand gestures such as tapping, holding, rotating, feeling, and probing.
