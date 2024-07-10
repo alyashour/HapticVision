@@ -79,9 +79,9 @@ def draw_translucent_3d_plane(frame, results):
     # transparency
     alpha = 0.3
 
-    # if there's no landmarks, just return the frame with no augmentations
+    # if there's no landmarks, do no augmentations
     if not results.hand_landmarks:
-        return frame
+        return
 
     # Get the dimensions of the frame
     height, width, _ = frame.shape
@@ -147,8 +147,6 @@ def draw_translucent_3d_plane(frame, results):
     cv2.arrowedLine(frame, bottom_right, top_right, (0, 0, 200), 2)
     cv2.arrowedLine(frame, bottom_right, bottom_left, (0, 0, 200), 2)
 
-    return frame
-
 
 def draw_floats(image, floats, start_x=10, start_y=40, line_height=30, font_scale=1, color=(0, 0, 0), thickness=4):
     """
@@ -174,9 +172,9 @@ def draw_velocity_arrows(frame: ndarray[any], results, previous_results):
     assert results is not None
     assert previous_results is not None
 
-    # if there's no landmarks, just return the frame with no augmentations
+    # if there's no landmarks, don't modify the frame
     if not (results.hand_landmarks and previous_results.hand_landmarks):
-        return frame
+        return
 
     # Get the dimensions of the frame
     height, width, _ = frame.shape
@@ -230,13 +228,18 @@ def draw_velocity_arrows(frame: ndarray[any], results, previous_results):
 
     draw_floats(frame, velocities)
 
-
 def main():
     if api_version == 'old':
         run_old_api(video_path)
     elif api_version == 'new':
         if calculate_velocities:
-            run_new_api(video_path, draw_translucent_3d_plane, draw_velocity_arrows)
+            def annotations(frame, results, previous_results):
+                if results:
+                    draw_translucent_3d_plane(frame, results)
+                if previous_results:
+                    draw_velocity_arrows(frame, results, previous_results)
+
+            run_new_api(video_path, annotations)
         else:
             run_new_api(video_path)
     else:

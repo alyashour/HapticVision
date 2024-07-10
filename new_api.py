@@ -90,12 +90,9 @@ class Model:
 
                     # use this callback to add any additional drawings to the image
                     if callback:
-                        annotated_image = callback(annotated_image, results)
+                        callback(annotated_image, results, previous_results)
 
-                    if velocity_sketcher_callback and previous_results is not None:
-                        velocity_sketcher_callback(annotated_image, results, previous_results)
-
-                    # update previous-frame-result for the next iteration
+                    # update previous frame result for the next iteration
                     previous_results = results
 
                 # exit condition
@@ -116,9 +113,9 @@ class Model:
             cv2.waitKey(1)
 
 
-def run(video_path: str = None, callback=None, buffer_callback=None):
+def run(video_path: str = None, callback=None):
     model = Model(video_path)
-    model.start(callback, buffer_callback)
+    model.start(callback)
 
 
 if __name__ == '__main__':
