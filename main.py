@@ -12,6 +12,7 @@ from numpy import ndarray
 option = 'live_stream'
 
 # API? (old or new):
+# NOTE: OLD IS DEPRECATED
 api_version = 'new'
 
 # video file path?
@@ -169,7 +170,6 @@ def draw_floats(image, floats, start_x=10, start_y=40, line_height=30, font_scal
         cv2.putText(image, text, position, font, font_scale, color, thickness=thickness)
 
 
-# just draw it for the pointer finger for now
 def draw_velocity_arrows(frame: ndarray[any], results, previous_results):
     assert results is not None
     assert previous_results is not None
@@ -181,7 +181,7 @@ def draw_velocity_arrows(frame: ndarray[any], results, previous_results):
     # Get the dimensions of the frame
     height, width, _ = frame.shape
 
-    # current position
+    # current positions
     hand = results.hand_landmarks[0]
     pointer: Landmark = hand[8]
     middle: Landmark = hand[12]
@@ -191,7 +191,7 @@ def draw_velocity_arrows(frame: ndarray[any], results, previous_results):
 
     current_nodes = [pointer, middle, ring, pinky, thumb]
 
-    # last-frame-position
+    # last frame- positions
     hand = previous_results.hand_landmarks[0]
     pointer: Landmark = hand[8]
     middle: Landmark = hand[12]
@@ -229,6 +229,7 @@ def draw_velocity_arrows(frame: ndarray[any], results, previous_results):
         velocities.append(velocity)
 
     draw_floats(frame, velocities)
+
 
 def main():
     if api_version == 'old':

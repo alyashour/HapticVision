@@ -1,7 +1,9 @@
+# NOT MY CODE
+# From ""
+
 from mediapipe import solutions
 from mediapipe.framework.formats import landmark_pb2
 import numpy as np
-from numpy import ndarray
 import cv2
 
 MARGIN = 10  # pixels
