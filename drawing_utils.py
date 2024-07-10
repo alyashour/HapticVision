@@ -12,9 +12,15 @@ HANDEDNESS_TEXT_COLOR = (88, 205, 54)  # vibrant green
 
 
 def draw_landmarks_on_image(rgb_image, detection_result):
+    """
+    Draw all the nodes in the hand on the image
+    :param rgb_image:
+    :param detection_result:
+    :return:
+    """
     hand_landmarks_list = detection_result.hand_landmarks
     handedness_list = detection_result.handedness
-    annotated_image = np.copy(rgb_image)
+    annotated_image = rgb_image
 
     # Loop through the detected hands to visualize.
     for idx in range(len(hand_landmarks_list)):
@@ -44,8 +50,6 @@ def draw_landmarks_on_image(rgb_image, detection_result):
         cv2.putText(annotated_image, f"{handedness[0].category_name}",
                     (text_x, text_y), cv2.FONT_HERSHEY_DUPLEX,
                     FONT_SIZE, HANDEDNESS_TEXT_COLOR, FONT_THICKNESS, cv2.LINE_AA)
-
-    return annotated_image
 
 
 def print_node(image, node: Landmark) -> None:
@@ -245,6 +249,4 @@ def draw_velocity_arrows(frame: np.ndarray[any], results, previous_results):
 
         velocity = (round_to_nearest_n(x), round_to_nearest_n(y))
         velocities.append(velocity)
-
-    draw_floats(frame, velocities)
 

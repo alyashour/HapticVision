@@ -1,7 +1,8 @@
 import cv2
 from time import time_ns
 import mediapipe as mp
-from drawing_utils import draw_landmarks_on_image
+
+from frameProcessor import FrameProcessor
 from numpy import ndarray
 
 model_path = 'hand_landmarker.task'
@@ -45,14 +46,13 @@ class Model:
         # update buffer
         self.results_buffer = result
 
-    def start(self, callback=None, velocity_sketcher_callback=None):
+    def start(self, processor: FrameProcessor):
         with HandLandmarker.create_from_options(self.options) as landmarker:
             capture = cv2.VideoCapture(
                 0 if self.live_mode else self.video_path  # use the video if there otherwise use the cam
             )
 
             # main video loop
-            previous_results = None
             while capture.isOpened():
                 # get starting frame time
                 frame_start_time = time_ns()
@@ -86,14 +86,11 @@ class Model:
                 # otherwise draw the results onto the frame
                 else:
                     results = self.results_buffer
-                    annotated_image: ndarray[any] = draw_landmarks_on_image(mp_image.numpy_view(), results)
+                    annotated_image: ndarray[any] = mp_image.numpy_view().copy()
 
                     # use this callback to add any additional drawings to the image
-                    if callback:
-                        callback(annotated_image, results, previous_results)
-
-                    # update previous frame result for the next iteration
-                    previous_results = results
+                    if processor:
+                        processor.process_frame(annotated_image, results)
 
                 # exit condition
                 if cv2.waitKey(1) == ord('q'):
@@ -104,7 +101,16 @@ class Model:
                 fps = int(1 / processing_time)
 
                 # print the framerate to the screen
-                cv2.putText(annotated_image, str(fps), (200, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (100, 255, 0), 3, cv2.LINE_AA)
+                cv2.putText(
+                    annotated_image,
+                    str(fps),
+                    (200, 70),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    1, (100, 255, 0), 3,
+                    cv2.LINE_AA
+                )
+
+                assert annotated_image is not None  # happened way too many times not to put this here
                 cv2.imshow('Main', annotated_image)
 
             print('Releasing Capture')
@@ -120,4 +126,4 @@ def run(video_path: str = None, callback=None):
 
 if __name__ == '__main__':
     model = Model('video.mov')
-    model.start()
+    model.start(FrameProcessor())

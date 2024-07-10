@@ -1,3 +1,7 @@
+from mediapipe.tasks.python.vision import HandLandmarkerResult
+from numpy import ndarray
+
+from frameProcessor import FrameProcessor
 from new_api import run as start_model
 from drawing_utils import *
 
@@ -12,20 +16,13 @@ video_path = 'video.mov'
 calculate_velocities = True
 #################################
 
-
-# DO NOT TOUCH ANYTHING BELOW #
 if option == 'live_stream':
     video_path = None
 
 
 def main():
-    def annotations(frame, results, previous_results):
-        if results:
-            draw_translucent_3d_plane(frame, results)
-        if previous_results:
-            draw_velocity_arrows(frame, results, previous_results)
-
-    start_model(video_path, annotations)
+    processor = FrameProcessor()
+    start_model(video_path, processor)
     print('Closing Program')
 
 
