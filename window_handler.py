@@ -1,9 +1,10 @@
-import cv2
 from time import time_ns
+
+import cv2
 import mediapipe as mp
+from numpy import ndarray
 
 from frameProcessor import FrameProcessor
-from numpy import ndarray
 
 model_path = 'hand_landmarker.task'
 BaseOptions = mp.tasks.BaseOptions
@@ -90,10 +91,12 @@ class Model:
 
                     # use this callback to add any additional drawings to the image
                     if processor:
+                        processor.frame_start_time = frame_start_time  # in ns
                         processor.process_frame(annotated_image, results)
 
                 # exit condition
                 if cv2.waitKey(1) == ord('q'):
+                    processor.release()
                     break
 
                 # calculate framerate
@@ -113,15 +116,17 @@ class Model:
                 assert annotated_image is not None  # happened way too many times not to put this here
                 cv2.imshow('Main', annotated_image)
 
+                processor.frame_number += 1
+
             print('Releasing Capture')
             capture.release()
             cv2.destroyAllWindows()
             cv2.waitKey(1)
 
 
-def run(video_path: str = None, callback=None):
+def run(processor: FrameProcessor, video_path: str = None):
     model = Model(video_path)
-    model.start(callback)
+    model.start(processor)
 
 
 if __name__ == '__main__':

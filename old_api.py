@@ -1,6 +1,13 @@
+import warnings
+from time import time_ns
+
 import cv2
 import mediapipe as mp
-from time import time_ns
+
+warnings.warn(
+    "The 'old_api' module is deprecated and will be removed in a future release."
+    "Please use the window_handler class instead."
+)
 
 
 def start(video_path: str = None):

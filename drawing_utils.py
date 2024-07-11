@@ -4,6 +4,8 @@ from mediapipe.framework.formats import landmark_pb2
 import numpy as np
 import cv2
 from mediapipe.tasks.python.components.containers import Landmark
+from mediapipe.tasks.python.components.containers.landmark import NormalizedLandmark
+from mediapipe.tasks.python.vision import HandLandmarkerResult
 
 MARGIN = 10  # pixels
 FONT_SIZE = 1
@@ -127,7 +129,7 @@ def draw_translucent_3d_plane(frame, results):
     pinky_pos = normalized_to_img_coords(pinky)
     wrist_pos = normalized_to_img_coords(wrist)
     thumb_pos = normalized_to_img_coords(thumb)
-    positions = [pointer_pos, pinky_pos, wrist_pos, thumb_pos] # ignore pointer because its the default
+    positions = [pointer_pos, pinky_pos, wrist_pos, thumb_pos]  # ignore pointer because its the default
 
     # get important values from the data
     # I populate them with defaults for comparison purposes
@@ -192,7 +194,42 @@ def draw_floats(image, floats, start_x=10, start_y=40, line_height=30, font_scal
         cv2.putText(image, text, position, font, font_scale, color, thickness=thickness)
 
 
-def draw_velocity_arrows(frame: np.ndarray[any], results, previous_results):
+def _get_fingertip_positions(hand: list[NormalizedLandmark]) -> dict[str, NormalizedLandmark]:
+    return {
+        'thumb': hand[4],
+        'pointer': hand[8],
+        'middle': hand[12],
+        'ring': hand[16],
+        'pinky': hand[20]
+    }
+
+
+def calculate_velocities(results: HandLandmarkerResult, previous_results: HandLandmarkerResult) -> dict[str, np.ndarray]:
+    assert results is not None
+    assert previous_results is not None
+
+    # if there's no landmarks, don't modify the frame
+    if not (results.hand_landmarks and previous_results.hand_landmarks):
+        raise ValueError("No hand landmarks detected")
+
+    # current positions
+    hand: list[NormalizedLandmark] = results.hand_landmarks[0]
+    current_nodes = _get_fingertip_positions(hand)
+
+    # last frame- positions
+    hand: list[NormalizedLandmark] = previous_results.hand_landmarks[0]
+    previous_nodes = _get_fingertip_positions(hand)
+
+    def landmark_to_vector(landmark: NormalizedLandmark) -> np.ndarray:
+        lst: list[float] = [landmark.x, landmark.y, landmark.z]
+        return np.array(lst)
+
+    velocities = {key: landmark_to_vector(current_nodes[key]) - landmark_to_vector(previous_nodes[key]) for key in current_nodes}
+
+    return velocities
+
+
+def draw_velocity_arrows(frame: np.ndarray[any], results: HandLandmarkerResult, previous_results: HandLandmarkerResult):
     assert results is not None
     assert previous_results is not None
 
@@ -200,38 +237,18 @@ def draw_velocity_arrows(frame: np.ndarray[any], results, previous_results):
     if not (results.hand_landmarks and previous_results.hand_landmarks):
         return
 
-    # Get the dimensions of the frame
     height, width, _ = frame.shape
-
-    # current positions
-    hand = results.hand_landmarks[0]
-    pointer: Landmark = hand[8]
-    middle: Landmark = hand[12]
-    ring: Landmark = hand[16]
-    pinky: Landmark = hand[20]
-    thumb = hand[4]
-
-    current_nodes = [pointer, middle, ring, pinky, thumb]
-
-    # last frame- positions
-    hand = previous_results.hand_landmarks[0]
-    pointer: Landmark = hand[8]
-    middle: Landmark = hand[12]
-    ring: Landmark = hand[16]
-    pinky: Landmark = hand[20]
-    thumb = hand[4]
-
-    previous_nodes = [pointer, middle, ring, pinky, thumb]
+    current_nodes: dict[str, NormalizedLandmark] = _get_fingertip_positions(results.hand_landmarks[0])
+    previous_results: dict[str, NormalizedLandmark] = _get_fingertip_positions(previous_results.hand_landmarks[0])
 
     # convert to screen coordinates
-    def normalized_to_img_coords(landmark: Landmark) -> list[int]:
+    def normalized_to_img_coords(landmark: NormalizedLandmark) -> list[int]:
         return [min(floor(landmark.x * width), width - 1),
                 min(floor(landmark.y * height), height - 1)]
 
-    velocities = []
-    for i in range(len(current_nodes)):
-        current_node = current_nodes[i]
-        previous_node = previous_nodes[i]
+    for key in current_nodes:
+        current_node = current_nodes[key]
+        previous_node = previous_results[key]
 
         # get endpoints of arrow
         end = normalized_to_img_coords(current_node)
@@ -239,14 +256,3 @@ def draw_velocity_arrows(frame: np.ndarray[any], results, previous_results):
 
         # draw arrow to the image
         cv2.arrowedLine(frame, start, end, (0, 255, 0), 4, cv2.LINE_AA)
-
-        # calculate velocity
-        x = end[0] - start[0]
-        y = end[1] - start[1]
-
-        def round_to_nearest_n(num, n=10):
-            return int(round(num / n) * n)
-
-        velocity = (round_to_nearest_n(x), round_to_nearest_n(y))
-        velocities.append(velocity)
-

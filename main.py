@@ -1,9 +1,5 @@
-from mediapipe.tasks.python.vision import HandLandmarkerResult
-from numpy import ndarray
-
 from frameProcessor import FrameProcessor
-from new_api import run as start_model
-from drawing_utils import *
+from window_handler import run as start_model
 
 #################################
 # Type? (video or live_stream):
@@ -22,7 +18,7 @@ if option == 'live_stream':
 
 def main():
     processor = FrameProcessor()
-    start_model(video_path, processor)
+    start_model(processor, video_path)
     print('Closing Program')
 
 
