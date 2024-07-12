@@ -229,7 +229,7 @@ def calculate_velocities(results: HandLandmarkerResult, previous_results: HandLa
     return velocities
 
 
-def draw_velocity_arrows(frame: np.ndarray[any], results: HandLandmarkerResult, previous_results: HandLandmarkerResult):
+def draw_movement_arrows(frame: np.ndarray[any], results: HandLandmarkerResult, previous_results: HandLandmarkerResult):
     assert results is not None
     assert previous_results is not None
 

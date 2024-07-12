@@ -1,28 +1,38 @@
 import math
-import struct
 
 import pandas as pd
-from mediapipe.tasks.python.vision import HandLandmarkerResult
 from numpy import ndarray
 from drawing_utils import *
 
+
+####################################
+def magnitude(vec3):
+    return math.sqrt(vec3[0] ** 2 + vec3[1] ** 2 + vec3[2] ** 2)
+
+
+def get_x(vec3):
+    return vec3[0]
+
+
+def get_y(vec3):
+    return vec3[1]
+
+
+def get_z(vec3):
+    return vec3[2]
+
+
+config = {
+    'kernel': magnitude
+}
+######################################
+
 columns = ['thumb_speed', 'pointer_speed', 'middle_speed', 'ring_speed', 'pinky_speed']
-
-
-class Buffer:
-    def __init__(self, size: int):
-        self.buffer = []
-        self.buffer_size = size
-
-    def append(self, data: list[float]):
-        assert len(data) == self.buffer_size
-        self.buffer.append(data)
 
 
 class FrameProcessor:
     def __init__(self):
         self.last_frame_results: None | HandLandmarkerResult = None
-        self.csv_buffer = Buffer(30)  # 30 frames of buffer space
         self.frame_number = 0
         self.speeds: dict[int, list[float]] = {}
 
@@ -40,10 +50,7 @@ class FrameProcessor:
                 velocities = [fingertip_speeds['thumb'], fingertip_speeds['pointer'], fingertip_speeds['middle'], fingertip_speeds['ring'],
                               fingertip_speeds['pinky']]
 
-                def magnitude(vec3):
-                    return math.sqrt(vec3[0] ** 2 + vec3[1] ** 2 + vec3[2] ** 2)
-
-                speeds: list[float] = [magnitude(vector) for vector in velocities]
+                speeds: list[float] = [config['kernel'](vector) for vector in velocities]
                 self.speeds[self.frame_number] = speeds
             except ValueError as ve:
                 pass
@@ -51,11 +58,11 @@ class FrameProcessor:
         # update data
         self.last_frame_results = results
 
-    def release(self):
+    def write_data(self, path='output.csv'):
         df = pd.DataFrame.from_dict(self.speeds, orient='index', columns=columns)
         df.reset_index(inplace=True)
         df.rename(columns={'index': 'frame'}, inplace=True)
-        df.to_csv('output.csv', index=False)
+        df.to_csv(path, index=False)
 
     def __draw_annotations(self, frame: ndarray[any], results: HandLandmarkerResult) -> None:
         """
@@ -66,6 +73,6 @@ class FrameProcessor:
         """
         if results:
             draw_landmarks_on_image(frame, results)
-            # draw_translucent_3d_plane(frame, results)
+            draw_translucent_3d_plane(frame, results)
         if self.last_frame_results:
-            draw_velocity_arrows(frame, results, self.last_frame_results)
+            draw_movement_arrows(frame, results, self.last_frame_results)

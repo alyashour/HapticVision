@@ -96,7 +96,7 @@ class Model:
 
                 # exit condition
                 if cv2.waitKey(1) == ord('q'):
-                    processor.release()
+                    processor.write_data()
                     break
 
                 # calculate framerate
