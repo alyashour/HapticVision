@@ -77,12 +77,7 @@ class FrameProcessor:
         normalized_hands: dict[str, list[np.array]] = {'Left': [], 'Right': []}
         for index, hand in enumerate(hand_positions):
             handedness: str = results.handedness[index][0].category_name
-            normalized_hand = []
-            wrist = hand[0]
-            for coordinate in hand:
-                normalized_coordinate: np.array = coordinate - wrist
-                normalized_hand.append(normalized_coordinate)
-            normalized_hands[handedness] = normalized_hand
+            normalized_hands[handedness] = hand
 
         self.positions = normalized_hands
 
@@ -124,6 +119,8 @@ class FrameProcessor:
             def transform_point(point: np.array, transform_matrix=transform):
                 # temp, shrink the point to only 2 vals
                 point2 = np.array((point[0], point[1]))
+
+                # apply matrix
                 transformed_point = np.dot(transform_matrix, point2)
                 return transformed_point
 
