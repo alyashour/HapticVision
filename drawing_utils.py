@@ -6,6 +6,7 @@ import cv2
 from mediapipe.tasks.python.components.containers import Landmark
 from mediapipe.tasks.python.components.containers.landmark import NormalizedLandmark
 from mediapipe.tasks.python.vision import HandLandmarkerResult
+from Arrow import Arrow
 
 MARGIN = 10  # pixels
 FONT_SIZE = 1
@@ -229,6 +230,12 @@ def calculate_velocities(results: HandLandmarkerResult, previous_results: HandLa
     return velocities
 
 
+# convert to screen coordinates
+def normalized_to_img_coords(landmark: NormalizedLandmark, width, height) -> list[int]:
+    return [min(floor(landmark.x * width), width - 1),
+            min(floor(landmark.y * height), height - 1)]
+
+
 def draw_movement_arrows(frame: np.ndarray[any], results: HandLandmarkerResult, previous_results: HandLandmarkerResult):
     assert results is not None
     assert previous_results is not None
@@ -241,18 +248,24 @@ def draw_movement_arrows(frame: np.ndarray[any], results: HandLandmarkerResult, 
     current_nodes: dict[str, NormalizedLandmark] = _get_fingertip_positions(results.hand_landmarks[0])
     previous_results: dict[str, NormalizedLandmark] = _get_fingertip_positions(previous_results.hand_landmarks[0])
 
-    # convert to screen coordinates
-    def normalized_to_img_coords(landmark: NormalizedLandmark) -> list[int]:
-        return [min(floor(landmark.x * width), width - 1),
-                min(floor(landmark.y * height), height - 1)]
-
     for key in current_nodes:
         current_node = current_nodes[key]
         previous_node = previous_results[key]
 
         # get endpoints of arrow
-        end = normalized_to_img_coords(current_node)
-        start = normalized_to_img_coords(previous_node)
+        end = normalized_to_img_coords(current_node, width, height)
+        start = normalized_to_img_coords(previous_node, width, height)
 
         # draw arrow to the image
         cv2.arrowedLine(frame, start, end, (0, 255, 0), 4, cv2.LINE_AA)
+
+
+def draw_arrow(frame: np.ndarray[any], arrow: Arrow, color=(0, 255, 0), thickness=4):
+    def conv_to_img_coords(arr: np.ndarray) -> list[int]:
+        height, width, _ = frame.shape
+        return [min(floor(arr[0] * width), width - 1), min(floor(arr[1] * height), height - 1)]
+
+    start_point = conv_to_img_coords(arrow.start)
+    end_point = conv_to_img_coords(arrow.end)
+
+    cv2.arrowedLine(frame, start_point, end_point, color, thickness, cv2.LINE_AA)
