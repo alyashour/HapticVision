@@ -62,10 +62,11 @@ class FrameProcessor:
         self.last_frame_results: None | HandLandmarkerResult = None
         self.frame_number = 0
         self.speeds: dict[int, list[float]] = {}  # indexed by the number chart
-        self.positions: dict[str, list[np.array]] = {}  # one for each hand. indexed by 'Left' & 'Right'. relative to top left of image
+        self.positions_in_image: dict[str, list[np.array]] = {}  # one for each hand. indexed by 'Left' & 'Right'. relative to top left of image
+        self.positions_translated: dict[str, list[np.array]] = {} # relative to the wrist
         self.hand_basis_positions: dict[str, list[np.array]] = {}  # one for each hand. indexed by 'Left' & 'Right'. relative to hand basis vecs
 
-    def update_positions(self, results):
+    def save_results_as_np_arr(self, results):
         def list_of_landmarks_to_np_array(landmark_list: list[NormalizedLandmark]) -> np.array:
             return [np.array((position.x, position.y)) for position in landmark_list]
 
@@ -79,7 +80,7 @@ class FrameProcessor:
             handedness: str = results.handedness[index][0].category_name
             normalized_hands[handedness] = hand
 
-        self.positions = normalized_hands
+        self.positions_in_image = normalized_hands
 
     def process_frame(self, frame: ndarray[any], results: HandLandmarkerResult) -> None:
         """
@@ -98,8 +99,19 @@ class FrameProcessor:
         if not results.hand_landmarks:
             return
 
-        # set all positions relative to the wrist
-        self.update_positions(results)
+        # save results relative to image as np arr
+        self.save_results_as_np_arr(results)
+
+        # normalize them and save that too
+        def normalize_to_wrist(results: dict[str, list[np.array]]):
+            normalized = {}
+            for handedness, positions in results.items():
+                if positions:
+                    wrist = positions[0]
+                    normalized[handedness] = [position - wrist for position in positions]
+            return normalized
+
+        self.positions_translated = normalize_to_wrist(self.positions_in_image)
 
         # get basis vectors
         for index, hand in enumerate(results.hand_landmarks):
@@ -114,24 +126,25 @@ class FrameProcessor:
             v_lateral = pinky_to_pointer.get_np_array()
             v_vertical = wrist_to_middle.get_np_array()
 
-            transform = np.vstack([v_lateral, v_vertical]).T
+            transform = np.linalg.inv(np.column_stack((v_lateral, v_vertical)))
 
             def transform_point(point: np.array, transform_matrix=transform):
-                # temp, shrink the point to only 2 vals
-                point2 = np.array((point[0], point[1]))
+                # translate
+                wrist = (hand[0].x, hand[0].y)
+                translated_point = point - wrist
 
                 # apply matrix
-                transformed_point = np.dot(transform_matrix, point2)
+                transformed_point = np.dot(transform_matrix, translated_point)
                 return transformed_point
 
-            self.hand_basis_positions[handedness] = [transform_point(point) for point in self.positions[handedness]]
+            self.hand_basis_positions[handedness] = [transform_point(point) for point in self.positions_in_image[handedness]]
 
         # print points
-        for handedness, points in self.positions.items():
+        for handedness, points in self.positions_in_image.items():
             if not points:
                 return
             if handedness == "Left":
-                print('image: ', points[8], 'nb: ', self.hand_basis_positions[handedness][8])
+                print('image: ', points[8], 'trans: ', self.positions_translated[handedness][8], 'new basis: ', self.hand_basis_positions[handedness][8])
 
     def update_speeds(self, results):
         if self.last_frame_results is not None:
