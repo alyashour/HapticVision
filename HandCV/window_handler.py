@@ -6,6 +6,16 @@ from numpy import ndarray
 
 from frameProcessor import FrameProcessor
 
+# Config #
+
+config = {
+    'display_window': True,  # display stream during processing?
+    'output_video': True,    # output processed video to a file?
+    'show_fps': True         # show the fps on the frame?
+}
+
+##########
+
 model_path = 'HandCV/hand_landmarker.task'
 BaseOptions = mp.tasks.BaseOptions
 HandLandmarker = mp.tasks.vision.HandLandmarker
@@ -72,7 +82,7 @@ class Model:
 
                 # run the frame through the model
                 mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
-                annotated_image = frame.copy()
+
                 if self.live_mode:  # if we're in live mode
                     # callback will handle the results
                     landmarker.detect_async(mp_image, time_ms())
@@ -80,16 +90,16 @@ class Model:
                     # we have to handle the results
                     self.results_buffer = landmarker.detect_for_video(mp_image, time_ms())
 
-                # if there are no results, just show the frame with no annotations
+                # if there are no results in the buffer, just show the frame with no annotations
                 if self.results_buffer is None:
                     pass
 
-                # otherwise draw the results onto the frame
+                # if there were results
                 else:
-                    results = self.results_buffer
-                    annotated_image: ndarray[any] = mp_image.numpy_view().copy()
+                    results = self.results_buffer  # pull the results from the buffer
+                    annotated_image: ndarray[any] = mp_image.numpy_view().copy()  # create a copy to work with
 
-                    # use this callback to add any additional drawings to the image
+                    # let the processor handle the frame
                     if processor:
                         processor.frame_start_time = frame_start_time  # in ns
                         processor.process_frame(annotated_image, results)
@@ -103,18 +113,22 @@ class Model:
                 processing_time = (time_ns() - frame_start_time) * 1e-9
                 fps = int(1 / processing_time)
 
-                # print the framerate to the screen
-                cv2.putText(
-                    annotated_image,
-                    str(fps),
-                    (200, 70),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    1, (100, 255, 0), 3,
-                    cv2.LINE_AA
-                )
+                # if needed, print the framerate to the screen
+                if config['show_fps']:
+                    cv2.putText(
+                        annotated_image,
+                        str(fps),
+                        (200, 70),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        1, (100, 255, 0), 3,
+                        cv2.LINE_AA
+                    )
 
-                assert annotated_image is not None  # happened way too many times not to put this here
-                cv2.imshow('Main', annotated_image)
+                # if we want to show the window, show it
+                if config['display_window']:
+                    # assert the annotated image exists
+                    assert annotated_image is not None
+                    cv2.imshow('Main', annotated_image)
 
                 processor.frame_number += 1
 
