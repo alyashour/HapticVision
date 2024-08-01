@@ -6,7 +6,7 @@ from window_handler import run as start_model
 option = 'live_stream'
 
 # video file path?
-video_path = 'video.mov'
+video_path = '../video.mov'
 
 # enable velocities?
 calculate_velocities = True

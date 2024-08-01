@@ -3,8 +3,7 @@ import math
 import pandas as pd
 from numpy import ndarray
 
-from Arrow import Arrow
-from drawing_utils import *
+from Analytics.drawing_utils import *
 
 
 ####################################

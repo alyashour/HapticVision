@@ -6,7 +6,7 @@ from numpy import ndarray
 
 from frameProcessor import FrameProcessor
 
-model_path = 'hand_landmarker.task'
+model_path = 'HandCV/hand_landmarker.task'
 BaseOptions = mp.tasks.BaseOptions
 HandLandmarker = mp.tasks.vision.HandLandmarker
 HandLandmarkerOptions = mp.tasks.vision.HandLandmarkerOptions
@@ -130,5 +130,5 @@ def run(processor: FrameProcessor, video_path: str = None):
 
 
 if __name__ == '__main__':
-    model = Model('video.mov')
+    model = Model('../video.mov')
     model.start(FrameProcessor())
