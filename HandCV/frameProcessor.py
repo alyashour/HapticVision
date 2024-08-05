@@ -60,10 +60,16 @@ class FrameProcessor:
     def __init__(self):
         self.last_frame_results: None | HandLandmarkerResult = None
         self.frame_number = 0
+
+        # these dictionaries are all the form {'Left': [...], 'Right': [...]}
         self.speeds: dict[int, list[float]] = {}  # indexed by the number chart
         self.positions_in_image: dict[str, list[np.array]] = {}  # one for each hand. indexed by 'Left' & 'Right'. relative to top left of image
-        self.positions_translated: dict[str, list[np.array]] = {} # relative to the wrist
+        self.positions_translated: dict[str, list[np.array]] = {}  # relative to the wrist
         self.hand_basis_positions: dict[str, list[np.array]] = {}  # one for each hand. indexed by 'Left' & 'Right'. relative to hand basis vecs
+
+    def __enter__(self):
+        print('Acquiring Frame Processor')
+        return self
 
     def save_results_as_np_arr(self, results):
         def list_of_landmarks_to_np_array(landmark_list: list[NormalizedLandmark]) -> np.array:
@@ -112,9 +118,12 @@ class FrameProcessor:
 
         self.positions_translated = normalize_to_wrist(self.positions_in_image)
 
-        # get basis vectors
+        # transform the points to be relative to each hand (up to 2)
         for index, hand in enumerate(results.hand_landmarks):
+            # get the handedness of the current hand
             handedness: str = results.handedness[index][0].category_name
+
+            # get the basis vectors we're working with
             pinky_to_pointer, wrist_to_middle = get_basis_vectors(hand)
 
             # draw the basis vectors
@@ -124,26 +133,32 @@ class FrameProcessor:
             # do some lin alg to turn vectors in terms of new basis vectors
             v_lateral = pinky_to_pointer.get_np_array()
             v_vertical = wrist_to_middle.get_np_array()
-
+            # generate the transformation matrix
             transform = np.linalg.inv(np.column_stack((v_lateral, v_vertical)))
 
             def transform_point(point: np.array, transform_matrix=transform):
                 # translate
-                wrist = (hand[0].x, hand[0].y)
+                wrist = (hand[0].x, hand[0].y)  # flatten point into 2 space
                 translated_point = point - wrist
 
                 # apply matrix
                 transformed_point = np.dot(transform_matrix, translated_point)
                 return transformed_point
 
+            # save these translated points to the processors persistent data
             self.hand_basis_positions[handedness] = [transform_point(point) for point in self.positions_in_image[handedness]]
 
         # print points
+        self.print_node_positions_to_console(8)  # 8 is the pointer finger node
+
+    def print_node_positions_to_console(self, node_index: int) -> None:
         for handedness, points in self.positions_in_image.items():
             if not points:
                 return
             if handedness == "Left":
-                print('image: ', points[8], 'trans: ', self.positions_translated[handedness][8], 'new basis: ', self.hand_basis_positions[handedness][8])
+                print('image: ', points[node_index],
+                      'trans: ', self.positions_translated[handedness][8],
+                      'new basis: ', self.hand_basis_positions[handedness][node_index])
 
     def update_speeds(self, results):
         if self.last_frame_results is not None:
@@ -170,7 +185,25 @@ class FrameProcessor:
         :param frame:  The frame to be annotated over.
         :param results: Results from the current frame
         """
+        # if there is node data, draw the nodes and edges
         if results:
             draw_landmarks_on_image(frame, results)
+
+        # if we also have last_frame_results, draw the movement vectors
+        # Note: these represent the velocities but have nothing to do with the velocity calculations
         if self.last_frame_results:
             draw_movement_arrows(frame, results, self.last_frame_results)
+
+    def __exit__(self, exc_type, exc_value, traceback) -> bool:
+        """
+        Called when the frame processor instance is no longer needed.
+        Saves the data calculated during its runtime & outputs the video
+        :return:
+        """
+        # print exceptions if they occurred
+        if exc_type:
+            print(f"Exception occurred: {exc_value}")
+
+        self.write_data()
+
+        return True  # suppress the exception

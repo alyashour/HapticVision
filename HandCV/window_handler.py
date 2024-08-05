@@ -39,7 +39,8 @@ class Model:
             self.options = HandLandmarkerOptions(
                 base_options=BaseOptions(model_asset_path=model_path),
                 running_mode=VisionRunningMode.LIVE_STREAM,
-                min_hand_detection_confidence=0.4,
+                min_hand_detection_confidence=0.01,
+                min_hand_presence_confidence=0.1,
                 min_tracking_confidence=0.4,
                 num_hands=2,
                 result_callback=self.update_results_buffer
@@ -48,8 +49,9 @@ class Model:
             self.options = HandLandmarkerOptions(
                 base_options=BaseOptions(model_asset_path=model_path),
                 running_mode=VisionRunningMode.VIDEO,
-                min_hand_detection_confidence=0.4,
-                min_tracking_confidence=0.4,
+                min_hand_detection_confidence=0.01,
+                min_tracking_confidence=0.0001,
+                min_hand_presence_confidence=0.1,
                 num_hands=2
             )
 
@@ -90,6 +92,9 @@ class Model:
                     # we have to handle the results
                     self.results_buffer = landmarker.detect_for_video(mp_image, time_ms())
 
+                # create an annotated copy
+                annotated_image: ndarray[any] = mp_image.numpy_view().copy()
+
                 # if there are no results in the buffer, just show the frame with no annotations
                 if self.results_buffer is None:
                     pass
@@ -97,7 +102,6 @@ class Model:
                 # if there were results
                 else:
                     results = self.results_buffer  # pull the results from the buffer
-                    annotated_image: ndarray[any] = mp_image.numpy_view().copy()  # create a copy to work with
 
                     # let the processor handle the frame
                     if processor:
@@ -106,7 +110,7 @@ class Model:
 
                 # exit condition
                 if cv2.waitKey(1) == ord('q'):
-                    processor.write_data()
+
                     break
 
                 # calculate framerate
