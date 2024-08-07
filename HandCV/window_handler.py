@@ -4,14 +4,15 @@ import cv2
 import mediapipe as mp
 from numpy import ndarray
 
+from ModelResult import ModelResult
 from frameProcessor import FrameProcessor
 
 # Config #
 
 config = {
     'display_window': True,  # display stream during processing?
-    'output_video': True,    # output processed video to a file?
-    'show_fps': True         # show the fps on the frame?
+    'output_video': True,  # output processed video to a file?
+    'show_fps': True  # show the fps on the frame?
 }
 
 ##########
@@ -22,6 +23,10 @@ HandLandmarker = mp.tasks.vision.HandLandmarker
 HandLandmarkerOptions = mp.tasks.vision.HandLandmarkerOptions
 HandLandmarkerResult = mp.tasks.vision.HandLandmarkerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
+
+mp_hands = mp.solutions.hands
+mp_drawing = mp.solutions.drawing_utils
+mp_drawing_styles = mp.solutions.drawing_styles
 
 
 def time_ms() -> int:
@@ -60,7 +65,11 @@ class Model:
         self.results_buffer = result
 
     def start(self, processor: FrameProcessor):
-        with HandLandmarker.create_from_options(self.options) as landmarker:
+        with mp.solutions.hands.Hands(
+                model_complexity=1,
+                min_tracking_confidence=0.5,
+                min_detection_confidence=0.5
+        ) as landmarker:
             capture = cv2.VideoCapture(
                 0 if self.live_mode else self.video_path  # use the video if there otherwise use the cam
             )
@@ -69,7 +78,6 @@ class Model:
             while capture.isOpened():
                 # get starting frame time
                 frame_start_time = time_ns()
-
                 success, frame = capture.read()  # read frame
 
                 # if there's a frame failure
@@ -82,18 +90,10 @@ class Model:
                         print('End of the video')
                         break
 
-                # run the frame through the model
-                mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
-
-                if self.live_mode:  # if we're in live mode
-                    # callback will handle the results
-                    landmarker.detect_async(mp_image, time_ms())
-                else:
-                    # we have to handle the results
-                    self.results_buffer = landmarker.detect_for_video(mp_image, time_ms())
-
-                # create an annotated copy
-                annotated_image: ndarray[any] = mp_image.numpy_view().copy()
+                frame.flags.writeable = False
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                self.results_buffer = landmarker.process(frame)  # run the frame through the model
+                frame.flags.writeable = True
 
                 # if there are no results in the buffer, just show the frame with no annotations
                 if self.results_buffer is None:
@@ -106,11 +106,10 @@ class Model:
                     # let the processor handle the frame
                     if processor:
                         processor.frame_start_time = frame_start_time  # in ns
-                        processor.process_frame(annotated_image, results)
+                        processor.process_frame(frame, ModelResult(results))
 
                 # exit condition
                 if cv2.waitKey(1) == ord('q'):
-
                     break
 
                 # calculate framerate
@@ -120,7 +119,7 @@ class Model:
                 # if needed, print the framerate to the screen
                 if config['show_fps']:
                     cv2.putText(
-                        annotated_image,
+                        frame,
                         str(fps),
                         (200, 70),
                         cv2.FONT_HERSHEY_SIMPLEX,
@@ -131,8 +130,8 @@ class Model:
                 # if we want to show the window, show it
                 if config['display_window']:
                     # assert the annotated image exists
-                    assert annotated_image is not None
-                    cv2.imshow('Main', annotated_image)
+                    assert frame is not None
+                    cv2.imshow('Main', frame)
 
                 processor.frame_number += 1
 
@@ -142,9 +141,46 @@ class Model:
             cv2.waitKey(1)
 
 
-def run(processor: FrameProcessor, video_path: str = None):
-    model = Model(video_path)
-    model.start(processor)
+def run(processor: FrameProcessor, video_path: str = None) -> None:
+    cap = cv2.VideoCapture(video_path if video_path else 0)
+    with (mp.solutions.hands.Hands(
+            model_complexity=1,
+            min_detection_confidence=0.2,
+            min_tracking_confidence=0.5) as hands):
+        while cap.isOpened():
+            success, image = cap.read()
+            if not success:
+                print("Ignoring empty camera frame.")
+
+                # If loading a video, use 'break' instead of 'continue'.
+                if video_path:
+                    break
+                else:
+                    continue
+
+            # To improve performance, optionally mark the image as not writeable to
+            # pass by reference.
+            image.flags.writeable = False
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            foreign_result = hands.process(image)
+
+            # prep the image for writing
+            image.flags.writeable = True
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+            # draw the hand annotations on the image.
+            process_is_success = bool(foreign_result.multi_hand_landmarks)
+            if process_is_success:
+                # convert from the foreign result to the ModelResult class
+                result = ModelResult.get_from_raw_output(foreign_result)
+                processor.process_frame(image, result)
+
+            # Flip the image horizontally for a selfie-view display.
+            # cv2.imshow('MediaPipe Hands', cv2.flip(image, 1))
+            cv2.imshow('Main', image)
+            if cv2.waitKey(1) == ord('q'):
+                break
+    cap.release()
 
 
 if __name__ == '__main__':

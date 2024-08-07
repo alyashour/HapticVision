@@ -4,6 +4,7 @@ import pandas as pd
 from numpy import ndarray
 
 from Analytics.drawing_utils import *
+from ModelResult import ModelResult
 
 
 ####################################
@@ -24,7 +25,8 @@ def get_z(vec3):
 
 
 config = {
-    'kernel': magnitude
+    'kernel': magnitude,
+    'draw movement arrows': False
 }
 ######################################
 
@@ -58,7 +60,7 @@ def get_basis_vectors(hand_landmarks: list[NormalizedLandmark]) -> tuple[Arrow, 
 
 class FrameProcessor:
     def __init__(self):
-        self.last_frame_results: None | HandLandmarkerResult = None
+        self.last_frame_results: None | ModelResult = None
         self.frame_number = 0
 
         # these dictionaries are all the form {'Left': [...], 'Right': [...]}
@@ -71,23 +73,23 @@ class FrameProcessor:
         print('Acquiring Frame Processor')
         return self
 
-    def save_results_as_np_arr(self, results):
+    def save_results_as_np_arr(self, results: ModelResult):
         def list_of_landmarks_to_np_array(landmark_list: list[NormalizedLandmark]) -> np.array:
             return [np.array((position.x, position.y)) for position in landmark_list]
 
         # convert to numpy arrays
-        hand_landmarks = results.hand_landmarks
+        hand_landmarks = results.multi_hand_landmarks
         hand_positions: list[list[np.array]] = [list_of_landmarks_to_np_array(hand) for hand in hand_landmarks]
 
         # normalize them
         normalized_hands: dict[str, list[np.array]] = {'Left': [], 'Right': []}
         for index, hand in enumerate(hand_positions):
-            handedness: str = results.handedness[index][0].category_name
+            handedness: str = results.multi_handedness[index].label
             normalized_hands[handedness] = hand
 
         self.positions_in_image = normalized_hands
 
-    def process_frame(self, frame: ndarray[any], results: HandLandmarkerResult) -> None:
+    def process_frame(self, frame: ndarray[any], results: ModelResult) -> None:
         """
         This is called once every processed (successful) frame from the model.
         :param frame:
@@ -101,7 +103,7 @@ class FrameProcessor:
         self.last_frame_results = results
 
         # continue only if there were results
-        if not results.hand_landmarks:
+        if not results.multi_hand_landmarks:
             return
 
         # save results relative to image as np arr
@@ -119,9 +121,9 @@ class FrameProcessor:
         self.positions_translated = normalize_to_wrist(self.positions_in_image)
 
         # transform the points to be relative to each hand (up to 2)
-        for index, hand in enumerate(results.hand_landmarks):
+        for index, hand in enumerate(results.multi_hand_landmarks):
             # get the handedness of the current hand
-            handedness: str = results.handedness[index][0].category_name
+            handedness: str = results.multi_handedness[index].label
 
             # get the basis vectors we're working with
             pinky_to_pointer, wrist_to_middle = get_basis_vectors(hand)
@@ -160,7 +162,7 @@ class FrameProcessor:
                       'trans: ', self.positions_translated[handedness][8],
                       'new basis: ', self.hand_basis_positions[handedness][node_index])
 
-    def update_speeds(self, results):
+    def update_speeds(self, results: ModelResult) -> None:
         if self.last_frame_results is not None:
             try:
                 fingertip_speeds = calculate_velocities(results, self.last_frame_results)
@@ -169,7 +171,7 @@ class FrameProcessor:
 
                 speeds: list[float] = [config['kernel'](vector) for vector in velocities]
                 self.speeds[self.frame_number] = speeds
-            except ValueError as ve:
+            except ValueError:
                 pass
 
     def write_data(self, path='output.csv'):
@@ -178,7 +180,7 @@ class FrameProcessor:
         df.rename(columns={'index': 'frame'}, inplace=True)
         df.to_csv(path, index=False)
 
-    def __draw_annotations(self, frame: ndarray[any], results: HandLandmarkerResult) -> None:
+    def __draw_annotations(self, frame: ndarray[any], results: ModelResult) -> None:
         """
         Takes in a frame and draws the landmarks and movement arrows to it.
         This function mutates the frame parameter and doesn't return anything.
@@ -191,7 +193,7 @@ class FrameProcessor:
 
         # if we also have last_frame_results, draw the movement vectors
         # Note: these represent the velocities but have nothing to do with the velocity calculations
-        if self.last_frame_results:
+        if self.last_frame_results and config['draw movement arrows']:
             draw_movement_arrows(frame, results, self.last_frame_results)
 
     def __exit__(self, exc_type, exc_value, traceback) -> bool:
@@ -202,7 +204,7 @@ class FrameProcessor:
         """
         # print exceptions if they occurred
         if exc_type:
-            print(f"Exception occurred: {exc_value}")
+            return False
 
         self.write_data()
 

@@ -5,8 +5,8 @@ import numpy as np
 import cv2
 from mediapipe.tasks.python.components.containers import Landmark
 from mediapipe.tasks.python.components.containers.landmark import NormalizedLandmark
-from mediapipe.tasks.python.vision import HandLandmarkerResult
 from HandCV.Arrow import Arrow
+from ModelResult import *
 
 MARGIN = 10  # pixels
 FONT_SIZE = 1
@@ -14,21 +14,22 @@ FONT_THICKNESS = 1
 HANDEDNESS_TEXT_COLOR = (88, 205, 54)  # vibrant green
 
 
-def draw_landmarks_on_image(rgb_image, detection_result):
+def draw_landmarks_on_image(rgb_image: np.ndarray[any], detection_result: ModelResult):
     """
     Draw all the nodes in the hand on the image
     :param rgb_image:
     :param detection_result:
     :return:
     """
-    hand_landmarks_list = detection_result.hand_landmarks
-    handedness_list = detection_result.handedness
+    hand_landmarks_list: [[Landmark]] = detection_result.multi_hand_landmarks
+    handedness_list: [HandednessResult] = detection_result.multi_handedness
     annotated_image = rgb_image
 
-    # Loop through the detected hands to visualize.
-    for idx in range(len(hand_landmarks_list)):
-        hand_landmarks = hand_landmarks_list[idx]
-        handedness = handedness_list[idx]
+    # Loop over the number of hands
+    hand_count = len(hand_landmarks_list)
+    for hand_index in range(hand_count):
+        hand_landmarks = hand_landmarks_list[hand_index]
+        handedness = handedness_list[hand_index].label
 
         # Draw the hand landmarks.
         hand_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
@@ -50,7 +51,7 @@ def draw_landmarks_on_image(rgb_image, detection_result):
         text_y = int(min(y_coordinates) * height) - MARGIN
 
         # Draw handedness (left or right hand) on the image.
-        cv2.putText(annotated_image, f"{handedness[0].category_name}",
+        cv2.putText(annotated_image, f"{handedness}",
                     (text_x, text_y), cv2.FONT_HERSHEY_DUPLEX,
                     FONT_SIZE, HANDEDNESS_TEXT_COLOR, FONT_THICKNESS, cv2.LINE_AA)
 
@@ -102,19 +103,19 @@ def draw_x(image, center, size=10, color=(200, 0, 0), thickness=4):
     cv2.line(image, line2_start, line2_end, color, thickness)
 
 
-def draw_translucent_3d_plane(frame, results):
+def draw_translucent_3d_plane(frame, results: ModelResult):
     # transparency
     alpha = 0.3
 
     # if there's no landmarks, do no augmentations
-    if not results.hand_landmarks:
+    if not results.multi_hand_landmarks:
         return
 
     # Get the dimensions of the frame
     height, width, _ = frame.shape
 
     # get the appropriate nodes for the plane
-    hand = results.hand_landmarks[0]
+    hand = results.multi_hand_landmarks[0]
     pointer: Landmark = hand[5]
     pinky: Landmark = hand[17]
     wrist: Landmark = hand[0]
@@ -205,20 +206,20 @@ def _get_fingertip_positions(hand: list[NormalizedLandmark]) -> dict[str, Normal
     }
 
 
-def calculate_velocities(results: HandLandmarkerResult, previous_results: HandLandmarkerResult) -> dict[str, np.ndarray]:
+def calculate_velocities(results: ModelResult, previous_results: ModelResult) -> dict[str, np.ndarray]:
     assert results is not None
     assert previous_results is not None
 
     # if there's no landmarks, don't modify the frame
-    if not (results.hand_landmarks and previous_results.hand_landmarks):
+    if not (results.multi_hand_landmarks and previous_results.multi_hand_landmarks):
         raise ValueError("No hand landmarks detected")
 
     # current positions
-    hand: list[NormalizedLandmark] = results.hand_landmarks[0]
+    hand: list[NormalizedLandmark] = results.multi_hand_landmarks[0]
     current_nodes = _get_fingertip_positions(hand)
 
     # last frame- positions
-    hand: list[NormalizedLandmark] = previous_results.hand_landmarks[0]
+    hand: list[NormalizedLandmark] = previous_results.multi_hand_landmarks[0]
     previous_nodes = _get_fingertip_positions(hand)
 
     def landmark_to_vector(landmark: NormalizedLandmark) -> np.ndarray:
@@ -236,17 +237,17 @@ def normalized_to_img_coords(landmark: NormalizedLandmark, width, height) -> lis
             min(floor(landmark.y * height), height - 1)]
 
 
-def draw_movement_arrows(frame: np.ndarray[any], results: HandLandmarkerResult, previous_results: HandLandmarkerResult):
+def draw_movement_arrows(frame: np.ndarray[any], results: ModelResult, previous_results: ModelResult):
     assert results is not None
     assert previous_results is not None
 
     # if there's no landmarks, don't modify the frame
-    if not (results.hand_landmarks and previous_results.hand_landmarks):
+    if not (results.multi_hand_landmarks and previous_results.multi_hand_landmarks):
         return
 
     height, width, _ = frame.shape
-    current_nodes: dict[str, NormalizedLandmark] = _get_fingertip_positions(results.hand_landmarks[0])
-    previous_results: dict[str, NormalizedLandmark] = _get_fingertip_positions(previous_results.hand_landmarks[0])
+    current_nodes: dict[str, NormalizedLandmark] = _get_fingertip_positions(results.multi_hand_landmarks[0])
+    previous_results: dict[str, NormalizedLandmark] = _get_fingertip_positions(previous_results.multi_hand_landmarks[0])
 
     for key in current_nodes:
         current_node = current_nodes[key]
