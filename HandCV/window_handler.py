@@ -2,7 +2,6 @@ from time import time_ns
 
 import cv2
 import mediapipe as mp
-from numpy import ndarray
 
 from ModelResult import ModelResult
 from frameProcessor import FrameProcessor

@@ -140,7 +140,7 @@ class FrameProcessor:
 
             def transform_point(point: np.array, transform_matrix=transform):
                 # translate
-                wrist = (hand[0].x, hand[0].y)  # flatten point into 2 space
+                wrist = np.array((hand[0].x, hand[0].y))  # flatten point into 2 space
                 translated_point = point - wrist
 
                 # apply matrix
@@ -153,13 +153,19 @@ class FrameProcessor:
         # print points
         self.print_node_positions_to_console(8)  # 8 is the pointer finger node
 
-    def print_node_positions_to_console(self, node_index: int) -> None:
+    def print_node_positions_to_console(self, node_index: int = 8) -> None:
+        """
+        Prints a certain node's position to the console.
+        Default node_index is 8 (pointer fingertip)
+        :param node_index:
+        :return: None
+        """
         for handedness, points in self.positions_in_image.items():
             if not points:
                 return
             if handedness == "Left":
                 print('image: ', points[node_index],
-                      'trans: ', self.positions_translated[handedness][8],
+                      'trans: ', self.positions_translated[handedness][node_index],
                       'new basis: ', self.hand_basis_positions[handedness][node_index])
 
     def update_speeds(self, results: ModelResult) -> None:

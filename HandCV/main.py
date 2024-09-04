@@ -3,10 +3,10 @@ from window_handler import run as start_model
 
 #################################
 # Type? (video or live_stream):
-option = 'video'
+option = 'live_stream'
 
 # video file path?
-video_path = 'Videos/F1 - H-006.mp4'
+video_path = 'Videos/F2 - SH.mp4'
 #################################
 
 if option == 'live_stream':
