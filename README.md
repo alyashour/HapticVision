@@ -17,9 +17,12 @@ This project is currently a work in progress. Key features and functionalities a
 
 ## Usage
 1. Ensure you have a video file of hand manipulations to analyze or a webcam feed.
-2. Input configurations into the main script.
-3. Run main.py.
-4. The script will process the video/live-stream.
+2. Input configurations directly into the main script using any text/code editor.
+3. Acquire dependencies using `pip install -r requirements.txt`
+4. Run `main.py`.
+5. The script will process the video/live-stream.
+
+* Executables coming soon.
 
 ## Implementation Details
 The project is built using Python, leveraging Mediapipe for hand detection and OpenCV for video processing. Key components include:
