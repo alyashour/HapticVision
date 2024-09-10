@@ -1,0 +1,15 @@
+# Exported using VGG Image Annotator (http://www.robots.ox.ac.uk/~vgg/software/via)
+# CSV_HEADER = metadata_id,file_list,temporal_segment_start,temporal_segment_end,metadata
+"-glfwaaX","[""Alioli_Wikimedia_Wardtmar.mp4""]",3.83559,6.5,"{""Activity"":""1. break egg""}"
+"+mHHT-tg","[""Alioli_Wikimedia_Wardtmar.mp4""]",9,20,"{""Activity"":""2. pour liquid""}"
+"ed+wsOZZ","[""Alioli_Wikimedia_Wardtmar.mp4""]",24,26,"{""Activity"":""2. pour liquid""}"
+"mxCVj1qz","[""Alioli_Wikimedia_Wardtmar.mp4""]",32,63,"{""Activity"":""3. cut garlic""}"
+"kHRoMie1","[""Alioli_Wikimedia_Wardtmar.mp4""]",64,128,"{""Activity"":""4. mix""}"
+"fH-oMre1","[""Alioli_Wikimedia_Wardtmar.mp4""]",0.917,,"{""Object"":""1"",""Type"":""1""}"
+"vPao-re8","[""Alioli_Wikimedia_Wardtmar.mp4""]",0.917,,"{""Object"":""2"",""Type"":""1""}"
+"x-PoM9ea","[""Alioli_Wikimedia_Wardtmar.mp4""]",0.917,,"{""Object"":""6"",""Type"":""2""}"
+"mR8ks-Aa","[""Alioli_Wikimedia_Wardtmar.mp4""]",7.208,,"{""Object"":""1"",""Type"":""1""}"
+"Yh7Klow6","[""Alioli_Wikimedia_Wardtmar.mp4""]",21.52,,"{""Object"":""2"",""Type"":""1""}"
+"A7jfx8PX","[""https://upload.wikimedia.org/wikipedia/commons/transcoded/8/89/Grilledcheesesandwich.webm/Grilledcheesesandwich.webm.360p.webm""]",2,7,"{""Activity"":""1. Heat Pan""}"
+"M8kl0+Xe","[""https://upload.wikimedia.org/wikipedia/commons/transcoded/8/89/Grilledcheesesandwich.webm/Grilledcheesesandwich.webm.360p.webm""]",8,23,"{""Activity"":""2. Spread butter""}"
+"yp-X6Hjy","[""https://upload.wikimedia.org/wikipedia/commons/transcoded/8/89/Grilledcheesesandwich.webm/Grilledcheesesandwich.webm.360p.webm""]",24,27,"{""Activity"":""3. Roast Bread""}"

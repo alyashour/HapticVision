@@ -6,10 +6,7 @@ from window_handler import run as start_model
 option = 'live_stream'
 
 # video file path?
-video_path = 'video.mov'
-
-# enable velocities?
-calculate_velocities = True
+video_path = 'Videos/F2 - SH.mp4'
 #################################
 
 if option == 'live_stream':
@@ -17,9 +14,9 @@ if option == 'live_stream':
 
 
 def main():
-    processor = FrameProcessor()
-    start_model(processor, video_path)
-    print('Closing Program')
+    with FrameProcessor() as processor:
+        start_model(processor, video_path)
+        print('Closing Program')
 
 
 print('Starting...')
