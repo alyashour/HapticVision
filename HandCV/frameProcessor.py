@@ -4,7 +4,7 @@ import pandas as pd
 from numpy import ndarray
 
 from Analytics.drawing_utils import *
-from ModelResult import ModelResult
+from HandCV.ModelResult import ModelResult
 
 
 ####################################
@@ -180,7 +180,7 @@ class FrameProcessor:
             except ValueError:
                 pass
 
-    def write_data(self, path='output.csv'):
+    def write_data(self, path='Output/output.csv'):
         df = pd.DataFrame.from_dict(self.speeds, orient='index', columns=columns)
         df.reset_index(inplace=True)
         df.rename(columns={'index': 'frame'}, inplace=True)

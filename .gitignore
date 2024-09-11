@@ -1,13 +1,5 @@
 # ignore videos
 /Videos
-video.mov
-
-# Ignore temp DataImporter items
-DataImporter/via_egg_video.json
-DataImporter/temporal_segments.csv
-DataImporter/demo_egg_vid_annotations.csv
 
 # Ignore output.csv (instance output)
-Videos
-DataImporter
-output.csv
+/Output

@@ -6,7 +6,7 @@ import cv2
 from mediapipe.tasks.python.components.containers import Landmark
 from mediapipe.tasks.python.components.containers.landmark import NormalizedLandmark
 from HandCV.Arrow import Arrow
-from ModelResult import *
+from HandCV.ModelResult import *
 
 MARGIN = 10  # pixels
 FONT_SIZE = 1

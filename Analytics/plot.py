@@ -7,7 +7,7 @@ config = {
 }
 
 # Load the data from CSV file
-csv_file = 'output.csv'
+csv_file = 'Output/output.csv'
 df = pd.read_csv(csv_file)
 
 # smooth the data if needed

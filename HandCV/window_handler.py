@@ -2,8 +2,9 @@ from time import time_ns
 
 import cv2
 import mediapipe as mp
+from mediapipe.tasks.python.vision import HandLandmarkerResult
 
-from ModelResult import ModelResult
+from HandCV.ModelResult import ModelResult
 from frameProcessor import FrameProcessor
 
 # Config #
@@ -16,18 +17,6 @@ config = {
 
 ##########
 
-model_path = 'HandCV/hand_landmarker.task'
-BaseOptions = mp.tasks.BaseOptions
-HandLandmarker = mp.tasks.vision.HandLandmarker
-HandLandmarkerOptions = mp.tasks.vision.HandLandmarkerOptions
-HandLandmarkerResult = mp.tasks.vision.HandLandmarkerResult
-VisionRunningMode = mp.tasks.vision.RunningMode
-
-mp_hands = mp.solutions.hands
-mp_drawing = mp.solutions.drawing_utils
-mp_drawing_styles = mp.solutions.drawing_styles
-
-
 def time_ms() -> int:
     return round(time_ns() * 1e-6)
 
@@ -38,26 +27,6 @@ class Model:
         self.results_buffer = None
         self.video_path = video_path
         self.live_mode = video_path is None
-
-        if self.live_mode:
-            self.options = HandLandmarkerOptions(
-                base_options=BaseOptions(model_asset_path=model_path),
-                running_mode=VisionRunningMode.LIVE_STREAM,
-                min_hand_detection_confidence=0.01,
-                min_hand_presence_confidence=0.1,
-                min_tracking_confidence=0.4,
-                num_hands=2,
-                result_callback=self.update_results_buffer
-            )
-        else:
-            self.options = HandLandmarkerOptions(
-                base_options=BaseOptions(model_asset_path=model_path),
-                running_mode=VisionRunningMode.VIDEO,
-                min_hand_detection_confidence=0.01,
-                min_tracking_confidence=0.0001,
-                min_hand_presence_confidence=0.1,
-                num_hands=2
-            )
 
     def update_results_buffer(self, result: HandLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
         # update buffer
@@ -183,5 +152,5 @@ def run(processor: FrameProcessor, video_path: str = None) -> None:
 
 
 if __name__ == '__main__':
-    model = Model('../video.mov')
+    model = Model('../Videos/video.mov')
     model.start(FrameProcessor())
