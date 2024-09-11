@@ -1,5 +1,6 @@
 # ignore videos
 /Videos
+video.mov
 
 # Ignore temp DataImporter items
 DataImporter/via_egg_video.json
