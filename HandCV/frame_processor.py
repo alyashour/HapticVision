@@ -1,28 +1,17 @@
+import os
+
 import math
 
 import pandas as pd
 from numpy import ndarray
 
 from Analytics.drawing_utils import *
-from HandCV.ModelResult import ModelResult
+from HandCV.model_result import ModelResult
 
 
 ####################################
 def magnitude(vec3):
     return math.sqrt(vec3[0] ** 2 + vec3[1] ** 2 + vec3[2] ** 2)
-
-
-def get_x(vec3):
-    return vec3[0]
-
-
-def get_y(vec3):
-    return vec3[1]
-
-
-def get_z(vec3):
-    return vec3[2]
-
 
 config = {
     'kernel': magnitude,
@@ -59,7 +48,8 @@ def get_basis_vectors(hand_landmarks: list[NormalizedLandmark]) -> tuple[Arrow, 
 
 
 class FrameProcessor:
-    def __init__(self):
+    def __init__(self, output_path: str):
+        self.output_path = output_path
         self.last_frame_results: None | ModelResult = None
         self.frame_number = 0
 
@@ -95,8 +85,6 @@ class FrameProcessor:
         :param frame:
         :param results:
         """
-        self.__draw_annotations(frame, results)
-
         self.update_speeds(results)
 
         # update data
@@ -150,24 +138,6 @@ class FrameProcessor:
             # save these translated points to the processors persistent data
             self.hand_basis_positions[handedness] = [transform_point(point) for point in self.positions_in_image[handedness]]
 
-        # print points
-        self.print_node_positions_to_console(8)  # 8 is the pointer finger node
-
-    def print_node_positions_to_console(self, node_index: int = 8) -> None:
-        """
-        Prints a certain node's position to the console.
-        Default node_index is 8 (pointer fingertip)
-        :param node_index:
-        :return: None
-        """
-        for handedness, points in self.positions_in_image.items():
-            if not points:
-                return
-            if handedness == "Left":
-                print('image: ', points[node_index],
-                      'trans: ', self.positions_translated[handedness][node_index],
-                      'new basis: ', self.hand_basis_positions[handedness][node_index])
-
     def update_speeds(self, results: ModelResult) -> None:
         if self.last_frame_results is not None:
             try:
@@ -180,7 +150,9 @@ class FrameProcessor:
             except ValueError:
                 pass
 
-    def write_data(self, path='Output/output.csv'):
+    def write_data(self, filename: str='output'):
+        filename = filename + '.csv'
+        path = os.path.join(self.output_path, filename)
         df = pd.DataFrame.from_dict(self.speeds, orient='index', columns=columns)
         df.reset_index(inplace=True)
         df.rename(columns={'index': 'frame'}, inplace=True)

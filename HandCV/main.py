@@ -1,5 +1,5 @@
-from frameProcessor import FrameProcessor
-from window_handler import run as start_model
+from frame_processor import FrameProcessor
+from cv_controller import run as start_cv_window
 
 #################################
 # Type? (video or live_stream):
@@ -18,7 +18,7 @@ if option == 'live_stream':
 
 def main():
     with FrameProcessor() as processor:
-        start_model(processor, video_path)
+        start_cv_window(processor, video_path)
         print('Closing Program')
 
 
