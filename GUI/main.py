@@ -1,9 +1,14 @@
+import warnings
+import logging
 from typing import Tuple
 
 import PySimpleGUI as sg
+
 from Controller import *
-import warnings
 from DMS.dms import *
+from FrameProcessor.frame_processor import fp_process_data
+from HandCV.cv_controller import run, process_video as cv_process_video
+from HandCV.cv_mode import CVMode, from_str as cvmode_from_str
 
 # disable module level warning
 warnings.filterwarnings(
@@ -11,6 +16,10 @@ warnings.filterwarnings(
     category=UserWarning,
     message='SymbolDatabase\.GetPrototype\(\) is deprecated\. Please use message_factory\.GetMessageClass\(\) instead\. SymbolDatabase\.GetPrototype\(\) will be removed soon\.'
 )
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Suppress TensorFlow warnings
+
+# Suppress all logging messages at the warning level and below
+logging.getLogger().setLevel(logging.ERROR)
 
 previous_input_data_path = 'previous_input.json'
 
@@ -21,13 +30,15 @@ PARENT_DIRECTORY = os.path.dirname(SCRIPT_DIRECTORY)
 DEFAULT_ASSETS_DIR = os.path.join(PARENT_DIRECTORY, 'Assets', 'Videos')
 DEFAULT_OUTPUT_DIR = os.path.join(PARENT_DIRECTORY, 'Output')
 
+
 def read_previous_inputs_from_file() -> Tuple:
     try:
-        filename, output_directory = load_data(previous_input_data_path)
+        filename, output_directory = load_json(previous_input_data_path)
         return True, filename, output_directory
     except FileNotFoundError:
         print('Previous inputs data - file not found.')
         return False, False, False
+
 
 def run_main_menu():
     # load previous inputs if they exist
@@ -35,9 +46,11 @@ def run_main_menu():
 
     cv_tab_layout = [[sg.Text('Mode:'), sg.Combo([CVMode.VIDEO, CVMode.LIVE_STREAM], readonly=True, default_value='Video', key='-MODE-'),
                       sg.Push(), sg.Checkbox('Display live?', key='-DISPLAY_LIVE-')],
-                     [sg.Text('Filename:'), sg.Push(), sg.InputText(key='-FILENAME-', default_text= previous_filename if success else 'Please Select Video'),
+                     [sg.Text('Filename:'), sg.Push(),
+                      sg.InputText(key='-FILENAME-', default_text=previous_filename if success else 'Please Select Video'),
                       sg.FileBrowse(file_types=(('MP4', '*.mp4'), ('MOV', '*.mov')), initial_folder=DEFAULT_ASSETS_DIR)],
-                     [sg.Text('Output Directory:'), sg.InputText(key='-OUTPUT_DIRECTORY-', default_text= previous_output_directory if success else DEFAULT_OUTPUT_DIR),
+                     [sg.Text('Output Directory:'),
+                      sg.InputText(key='-OUTPUT_DIRECTORY-', default_text=previous_output_directory if success else DEFAULT_OUTPUT_DIR),
                       sg.FolderBrowse(initial_folder=DEFAULT_OUTPUT_DIR)],
                      [sg.Submit('Run'), sg.CloseButton('Close')]]
 
@@ -64,14 +77,22 @@ def main():
     try:
         if event == 'Run':
             # pull inputs from values
-            mode = cvmode_from_str(values['-MODE-'].__str__()) # have to do this to make sure enum data type is correct
+            mode = cvmode_from_str(values['-MODE-'].__str__())  # have to do this to make sure enum data type is correct
             display_live: bool = values['-DISPLAY_LIVE-']
+            memory_limit_gb = 8 # todo: put this in the UI
             filename: str = values['-FILENAME-']
             output_directory: str = values['-OUTPUT_DIRECTORY-']
-            save_data((filename, output_directory), previous_input_data_path)
+            save_json((filename, output_directory), previous_input_data_path)
 
             # execute command
-            success = run_cv(mode, display_live, filename, output_directory)
+            # todo: parallel
+            if False:
+                cv_results = cv_process_video(filename, memory_limit_gb)
+                fp_results = fp_process_data(cv_results)
+            # regular
+            else:
+                with FrameProcessor(output_directory) as fp:
+                    run(fp, mode, filename, display_video=display_live)
         if event == 'Analyze':
             analyze_data(data=values)
     except InvalidInputError as e:

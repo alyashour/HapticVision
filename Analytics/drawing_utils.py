@@ -206,31 +206,6 @@ def _get_fingertip_positions(hand: list[NormalizedLandmark]) -> dict[str, Normal
     }
 
 
-def calculate_velocities(results: ModelResult, previous_results: ModelResult) -> dict[str, np.ndarray]:
-    assert results is not None
-    assert previous_results is not None
-
-    # if there's no landmarks, don't modify the frame
-    if not (results.multi_hand_landmarks and previous_results.multi_hand_landmarks):
-        raise ValueError("No hand landmarks detected")
-
-    # current positions
-    hand: list[NormalizedLandmark] = results.multi_hand_landmarks[0]
-    current_nodes = _get_fingertip_positions(hand)
-
-    # last frame- positions
-    hand: list[NormalizedLandmark] = previous_results.multi_hand_landmarks[0]
-    previous_nodes = _get_fingertip_positions(hand)
-
-    def landmark_to_vector(landmark: NormalizedLandmark) -> np.ndarray:
-        lst: list[float] = [landmark.x, landmark.y, landmark.z]
-        return np.array(lst)
-
-    velocities = {key: landmark_to_vector(current_nodes[key]) - landmark_to_vector(previous_nodes[key]) for key in current_nodes}
-
-    return velocities
-
-
 # convert to screen coordinates
 def normalized_to_img_coords(landmark: NormalizedLandmark, width, height) -> list[int]:
     return [min(floor(landmark.x * width), width - 1),

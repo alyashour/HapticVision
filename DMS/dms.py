@@ -3,7 +3,7 @@
 import json
 import os
 
-def save_data(data, filename: str):
+def save_json(data, filename: str):
     """
     Saves data to a file in the Appdata folder with the given filename.
     :param data:
@@ -14,7 +14,7 @@ def save_data(data, filename: str):
     with open(path, 'w') as file:
         json.dump(data, file)
 
-def load_data(filename: str):
+def load_json(filename: str):
     path = f'../Appdata/{filename}'
     # check if the file exists
     if os.path.exists(path):
@@ -22,3 +22,4 @@ def load_data(filename: str):
             return json.load(file)
     else:
         raise FileNotFoundError
+

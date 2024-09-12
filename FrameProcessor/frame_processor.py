@@ -1,11 +1,13 @@
 import os
+from unittest.mock import right
 
 import math
-
 import pandas as pd
 from numpy import ndarray
 
 from Analytics.drawing_utils import *
+from DMS.dms import save_json
+from GUI.time_formatter import clock
 from HandCV.model_result import ModelResult
 
 
@@ -18,6 +20,10 @@ config = {
     'draw movement arrows': False
 }
 ######################################
+
+def fp_process_data(cv_results):
+    print(f'Entering FC Loop - {clock()}')
+    print(f'Exiting FC Loop - {clock()}')
 
 columns = ['thumb_speed', 'pointer_speed', 'middle_speed', 'ring_speed', 'pinky_speed']
 
@@ -47,6 +53,47 @@ def get_basis_vectors(hand_landmarks: list[NormalizedLandmark]) -> tuple[Arrow, 
     return v_lateral, v_vertical
 
 
+def calculate_velocities(results: ModelResult, previous_results: ModelResult) -> dict[str, list[np.ndarray]]:
+    """
+    Calculates the velocities of all the nodes in the results, up to 2 hands.
+    :param results:
+    :param previous_results:
+    :return: dict['Left': [-list of speeds per node-], 'Right': [list of speeds per node-]]
+                Note: one or both can be null
+    """
+    assert results is not None
+    assert previous_results is not None
+
+    # if there's no landmarks, don't modify the frame
+    if not (results.multi_hand_landmarks and previous_results.multi_hand_landmarks):
+        raise ValueError("No hand landmarks detected")
+
+    # current positions
+    velocities: dict[str, list] = {'Left': [], 'Right': []}  # list of hands, each with a list of nodes
+    for index, current_hand in enumerate(results.multi_hand_landmarks):
+        handedness = results.multi_handedness[index].label
+
+        # try accessing the previous frame
+        try:
+            previous_hand = previous_results.multi_hand_landmarks[index]
+        except IndexError:
+            # there was no previous frame
+            # therefore, there is no velocity
+            velocities[handedness] = [[0, 0, 0] for _ in current_hand]
+
+        # we need to convert them to vectors for proper subtracting
+        def landmark_to_list(landmark: NormalizedLandmark) -> list:
+            return [landmark.x, landmark.y, landmark.z]
+
+        def minus(l1: list, l2: list) -> list:
+            assert len(l1) == len(l2) == 3
+
+            return [l1[i] - l2[i] for i in range(len(l1))]
+
+        velocities[handedness] = [minus(landmark_to_list(current_hand[i]), landmark_to_list(previous_hand[i])) for i, node in enumerate(current_hand)]
+
+    return velocities
+
 class FrameProcessor:
     def __init__(self, output_path: str):
         self.output_path = output_path
@@ -54,10 +101,10 @@ class FrameProcessor:
         self.frame_number = 0
 
         # these dictionaries are all the form {'Left': [...], 'Right': [...]}
-        self.speeds: dict[int, list[float]] = {}  # indexed by the number chart
+        self.velocities: dict[str, dict[int, list[[]]]] = {'Left': {}, 'Right': {}}  # indexed by handedness then frame number
         self.positions_in_image: dict[str, list[np.array]] = {}  # one for each hand. indexed by 'Left' & 'Right'. relative to top left of image
         self.positions_translated: dict[str, list[np.array]] = {}  # relative to the wrist
-        self.hand_basis_positions: dict[str, list[np.array]] = {}  # one for each hand. indexed by 'Left' & 'Right'. relative to hand basis vecs
+        self.final_positions: dict[int, dict[str, list[np.array]]] = {}  # for each frame, then one for each hand. indexed by 'Left' & 'Right'. relative to hand basis vecs
 
     def __enter__(self):
         print('Acquiring Frame Processor')
@@ -79,13 +126,14 @@ class FrameProcessor:
 
         self.positions_in_image = normalized_hands
 
-    def process_frame(self, frame: ndarray[any], results: ModelResult) -> None:
+    def process_frame(self, frame_number: int, frame: ndarray[any], results: ModelResult) -> None:
         """
         This is called once every processed (successful) frame from the model.
+        :param frame_number:
         :param frame:
         :param results:
         """
-        self.update_speeds(results)
+        self.update_speeds(results, frame_number)
 
         # update data
         self.last_frame_results = results
@@ -136,27 +184,33 @@ class FrameProcessor:
                 return transformed_point
 
             # save these translated points to the processors persistent data
-            self.hand_basis_positions[handedness] = [transform_point(point) for point in self.positions_in_image[handedness]]
+            try:
+                self.final_positions[frame_number][handedness] = [transform_point(point) for point in self.positions_in_image[handedness]]
+            except KeyError:
+                self.final_positions[frame_number] = {}
+                self.final_positions[frame_number][handedness] = [transform_point(point) for point in self.positions_in_image[handedness]]
 
-    def update_speeds(self, results: ModelResult) -> None:
+    # todo: write this in terms of positions instead of frame coordinates
+    def update_speeds(self, results: ModelResult, frame_number: int) -> None:
         if self.last_frame_results is not None:
             try:
-                fingertip_speeds = calculate_velocities(results, self.last_frame_results)
-                velocities = [fingertip_speeds['thumb'], fingertip_speeds['pointer'], fingertip_speeds['middle'], fingertip_speeds['ring'],
-                              fingertip_speeds['pinky']]
-
-                speeds: list[float] = [config['kernel'](vector) for vector in velocities]
-                self.speeds[self.frame_number] = speeds
+                all_node_speeds = calculate_velocities(results, self.last_frame_results)
+                self.velocities['Left'][frame_number] = all_node_speeds['Left']
+                self.velocities['Right'][frame_number] = all_node_speeds['Right']
             except ValueError:
                 pass
 
     def write_data(self, filename: str='output'):
-        filename = filename + '.csv'
-        path = os.path.join(self.output_path, filename)
-        df = pd.DataFrame.from_dict(self.speeds, orient='index', columns=columns)
-        df.reset_index(inplace=True)
-        df.rename(columns={'index': 'frame'}, inplace=True)
-        df.to_csv(path, index=False)
+        left_path = os.path.join(self.output_path, 'left_hand_velocities.csv')
+        right_path = os.path.join(self.output_path, 'right_hand_velocities.csv')
+        left_df = pd.DataFrame.from_dict(self.velocities['Left'], orient='index')
+        right_df = pd.DataFrame.from_dict(self.velocities['Right'], orient='index')
+        left_df.reset_index(inplace=True)
+        right_df.rename(columns={'index': 'frame'}, inplace=True)
+        left_df.to_csv(left_path, index=False)
+        right_df.to_csv(right_path, index=False)
+
+        save_json(self.velocities, filename + '.json')
 
     def __draw_annotations(self, frame: ndarray[any], results: ModelResult) -> None:
         """

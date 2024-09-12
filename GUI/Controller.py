@@ -1,9 +1,10 @@
 import os
 
-from HandCV.cv_mode import CVMode, from_str as cvmode_from_str
-from HandCV.exceptions import InvalidInputError
-from HandCV.frame_processor import FrameProcessor
+from FrameProcessor.frame_processor import FrameProcessor
 from HandCV.cv_controller import run as start_cv_window
+from HandCV.cv_mode import CVMode
+from HandCV.exceptions import InvalidInputError
+
 
 def ensure_inputs(mode: CVMode, filename, output_filename, output_directory) -> bool:
     if not isinstance(mode, CVMode):
