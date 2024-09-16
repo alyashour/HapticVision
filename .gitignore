@@ -1,8 +1,7 @@
-# ignore videos
 /Assets
-
-# Ignore output.csv (instance output)
 /Output
-
-# Ignore Instance-Appdata
 /Appdata
+/build
+/dist
+
+main.spec

@@ -1,10 +1,11 @@
 import logging
 import warnings
+from pathlib import Path
 from typing import Tuple
 
 import PySimpleGUI as sg
 
-from Controller import *
+from GUI.controller import *
 from HandCV.cv_controller import run, process_video as cv_process_video
 from HandCV.cv_mode import CVMode, from_str as cvmode_from_str
 from HandCV.dms import *
@@ -22,14 +23,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Suppress TensorFlow warnings
 logging.getLogger().setLevel(logging.ERROR)
 
 previous_input_data_path = 'previous_input.json'
-
-# Get the parent directory
-SCRIPT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
-PARENT_DIRECTORY = os.path.dirname(SCRIPT_DIRECTORY)
-# Define the default paths for the asset and output directories
-DEFAULT_ASSETS_DIR = os.path.join(PARENT_DIRECTORY, 'Assets', 'Videos')
-DEFAULT_OUTPUT_DIR = os.path.join(PARENT_DIRECTORY, 'Output')
-
+DEFAULT_DIRECTORY = Path.home() / 'Desktop'
 
 def read_previous_inputs_from_file() -> Tuple:
     try:
@@ -48,10 +42,10 @@ def run_main_menu():
                       sg.Push(), sg.Checkbox('Display live?', key='-DISPLAY_LIVE-')],
                      [sg.Text('Filename:'), sg.Push(),
                       sg.InputText(key='-FILENAME-', default_text=previous_filename if success else 'Please Select Video'),
-                      sg.FileBrowse(file_types=(('MP4', '*.mp4'), ('MOV', '*.mov')), initial_folder=DEFAULT_ASSETS_DIR)],
+                      sg.FileBrowse(file_types=(('MP4', '*.mp4'), ('MOV', '*.mov')), initial_folder=DEFAULT_DIRECTORY)],
                      [sg.Text('Output Directory:'),
-                      sg.InputText(key='-OUTPUT_DIRECTORY-', default_text=previous_output_directory if success else DEFAULT_OUTPUT_DIR),
-                      sg.FolderBrowse(initial_folder=DEFAULT_OUTPUT_DIR)],
+                      sg.InputText(key='-OUTPUT_DIRECTORY-', default_text=previous_output_directory if success else 'Please Select Output Directory'),
+                      sg.FolderBrowse(initial_folder=previous_output_directory if success else DEFAULT_DIRECTORY)],
                      [sg.Submit('Run'), sg.CloseButton('Close')]]
 
     # todo: add label at the top to ensure there is data available
