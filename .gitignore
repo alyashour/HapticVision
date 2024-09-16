@@ -3,3 +3,6 @@
 
 # Ignore output.csv (instance output)
 /Output
+
+# Ignore Instance-Appdata
+/Appdata
