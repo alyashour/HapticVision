@@ -8,10 +8,10 @@ WORKDIR /Users/alya/PycharmProjects/HandCV
 COPY requirements.txt ./
 
 # Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
 # Copy the rest of the project files
 COPY . .
 
 # Command to run your app (adjust as necessary)
-CMD ["python", "GUI/main.py"]
+CMD ["python", "app.py"]

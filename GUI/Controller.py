@@ -1,6 +1,6 @@
 import os
 
-from FrameProcessor.frame_processor import FrameProcessor
+from HandCV.frame_processor import FrameProcessor
 from HandCV.cv_controller import run as start_cv_window
 from HandCV.cv_mode import CVMode
 from HandCV.exceptions import InvalidInputError

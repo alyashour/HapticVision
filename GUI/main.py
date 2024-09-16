@@ -1,14 +1,14 @@
-import warnings
 import logging
+import warnings
 from typing import Tuple
 
 import PySimpleGUI as sg
 
 from Controller import *
-from DMS.dms import *
-from FrameProcessor.frame_processor import fp_process_data
 from HandCV.cv_controller import run, process_video as cv_process_video
 from HandCV.cv_mode import CVMode, from_str as cvmode_from_str
+from HandCV.dms import *
+from HandCV.frame_processor import fp_process_data
 
 # disable module level warning
 warnings.filterwarnings(
@@ -79,7 +79,7 @@ def main():
             # pull inputs from values
             mode = cvmode_from_str(values['-MODE-'].__str__())  # have to do this to make sure enum data type is correct
             display_live: bool = values['-DISPLAY_LIVE-']
-            memory_limit_gb = 8 # todo: put this in the UI
+            memory_limit_gb = 8  # todo: put this in the UI
             filename: str = values['-FILENAME-']
             output_directory: str = values['-OUTPUT_DIRECTORY-']
             save_json((filename, output_directory), previous_input_data_path)

@@ -1,12 +1,11 @@
 import os
-from unittest.mock import right
 
 import math
 import pandas as pd
 from numpy import ndarray
 
 from Analytics.drawing_utils import *
-from DMS.dms import save_json
+from HandCV.dms import save_json
 from GUI.time_formatter import clock
 from HandCV.model_result import ModelResult
 

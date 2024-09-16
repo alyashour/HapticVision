@@ -5,7 +5,7 @@ import PySimpleGUI as sg
 import cv2
 import mediapipe as mp
 
-from FrameProcessor.frame_processor import FrameProcessor
+from HandCV.frame_processor import FrameProcessor
 from HandCV.cv_mode import CVMode
 from GUI.time_formatter import format_duration, clock
 from HandCV.model_result import ModelResult
