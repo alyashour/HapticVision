@@ -25,6 +25,7 @@ logging.getLogger().setLevel(logging.ERROR)
 previous_input_data_path = 'previous_input.json'
 DEFAULT_DIRECTORY = Path.home() / 'Desktop'
 
+
 def read_previous_inputs_from_file() -> Tuple:
     try:
         filename, output_directory = load_json(previous_input_data_path)
@@ -44,7 +45,8 @@ def run_main_menu():
                       sg.InputText(key='-FILENAME-', default_text=previous_filename if success else 'Please Select Video'),
                       sg.FileBrowse(file_types=(('MP4', '*.mp4'), ('MOV', '*.mov')), initial_folder=DEFAULT_DIRECTORY)],
                      [sg.Text('Output Directory:'),
-                      sg.InputText(key='-OUTPUT_DIRECTORY-', default_text=previous_output_directory if success else 'Please Select Output Directory'),
+                      sg.InputText(key='-OUTPUT_DIRECTORY-',
+                                   default_text=previous_output_directory if success else 'Please Select Output Directory'),
                       sg.FolderBrowse(initial_folder=previous_output_directory if success else DEFAULT_DIRECTORY)],
                      [sg.Submit('Run'), sg.CloseButton('Close')]]
 
